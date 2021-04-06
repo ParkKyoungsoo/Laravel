@@ -1,0 +1,313 @@
+
+
+
+
+# Laravel을 이용한 게시판 만들기
+
+1. composer 를 이용하여 프로젝트 생성
+
+```
+composer create-project --prefer-dist laravel/laravel blog {프로젝트 이름}
+```
+
+
+
+명령옵션
+
+```
+--stability (-s): Minimum stability of package. Defaults to stable.
+
+--prefer-source: Install packages from source when available.
+
+--prefer-dist: Install packages from dist when available.
+
+--repository: Provide a custom repository to search for the package, which will be used instead of packagist. Can be either an HTTP URL pointing to a composer repository, a path to a local packages.json file, or a JSON string which similar to what the repositories key accepts.
+
+--add-repository: Add the repository option to the composer.json.
+
+--dev: Install packages listed in require-dev.
+
+--no-dev: Disables installation of require-dev packages.
+
+--no-scripts: Disables the execution of the scripts defined in the root package.
+
+--no-progress: Removes the progress display that can mess with some terminals or scripts which don't handle backspace characters.
+
+--no-secure-http: Disable the secure-http config option temporarily while installing the root package. Use at your own risk. Using this flag is a bad idea.
+
+--keep-vcs: Skip the deletion of the VCS metadata for the created project. This is mostly useful if you run the command in non-interactive mode.
+
+--remove-vcs: Force-remove the VCS metadata without prompting.
+
+--no-install: Disables installation of the vendors.
+
+--ignore-platform-reqs: ignore php, hhvm, lib-* and ext-* requirements and force the installation even if the local machine does not fulfill these.
+
+```
+
+
+
+2. DB연결
+
+생성된 프로젝트 내의 .env 파일 내에서 DB 설정을 한다.
+
+```env
+...
+DB_CONNECTION=mysql		// 사용할 DB
+DB_HOST=127.0.0.1		// 주소
+DB_PORT=3306			// 포트번호
+DB_DATABASE=laravel		// DB이름
+DB_USERNAME=root		// ID
+DB_PASSWORD=			// 비밀번호
+...
+```
+
+
+
+config -> database.php 내에서 DB설정을 해준다.(mysql 사용)
+
+```php
+/* 생략 */
+
+    	// mysql 설정
+        'mysql' => [
+            'driver' => 'mysql',
+            'url' => env('DATABASE_URL'),
+            'host' => env('DB_HOST', '{DB 주소}'),
+            'port' => env('DB_PORT', '{포트번호}'),
+            'database' => env('DB_DATABASE', '{DB이름}'),	// 사용할 DB 이름
+            'username' => env('DB_USERNAME', '{계정}'),	// DB에 로그인할 계정
+            'password' => env('DB_PASSWORD', '{비밀번호}'),		// 비밀번호
+            'unix_socket' => env('DB_SOCKET', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+            'options' => extension_loaded('pdo_mysql') ? array_filter([
+                PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+            ]) : [],
+        ],
+
+/* 생략 */
+```
+
+
+
+
+
+### DB로부터 model 생성하기
+
+제너레이터 설치
+
+```
+composer require "laracademy/generators" --dev
+```
+
+
+
+설치가 완료 된 후에 DB로부터 Model을 생성 할 수 있다.
+
+```
+php artisan generate:modelfromtable --table={테이블명}
+```
+
+생성된 모델은 app -> Models 에서 확인 할 수 있다.
+
+![image-20210406141328939](C:\Users\DESKTOP\AppData\Roaming\Typora\typora-user-images\image-20210406141328939.png)
+
+<center>model 생성 화면</center>
+
+
+
+
+
+### 일반 Model 생성
+
+또한, artisan 명령어를 이용하여 모델을 생성할 수 있다.
+
+```
+php artisan make:model {모델명}
+```
+
+![image-20210406141512446](C:\Users\DESKTOP\AppData\Roaming\Typora\typora-user-images\image-20210406141512446.png)
+
+<center>빈 모델 생성</center>
+
+
+
+
+
+### 게시판 글 조회하기
+
+게시판 페이지에 접근했을때, 모든 게시글을 볼 수 있어야 한다.
+
+http://localhost:8000/ 으로 접속을 했을 때 모든 게시글이 나타나게 해보자
+
+
+
+우선 controller에서 모든 글을 조회하는 함수를 만들어야 한다.
+
+##### controller 생성
+
+```
+php artisan make:controller {컨트롤러 이름}
+```
+
+위 명령어를 통해 Controller의 틀을 만들 수 있다.
+
+app -> Http -> Controllers 에 내가 만든 Controller.php를 열어보자
+
+![image-20210406142749883](C:\Users\DESKTOP\AppData\Roaming\Typora\typora-user-images\image-20210406142749883.png)
+
+<center>생성된 BoardController</center>
+
+
+
+Laravel에서는 Eloquent ORM을 사용하여 쿼리문을 사용하지 않고 코드 형태로 mysql에 접근해 통신 할 수 있다.
+
+```php
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Boards;		// Boards 모델을 사용한다
+
+class BoardController extends Controller
+{
+    // 모든 게시글을 호출하는 함수를 만든다
+    public function searchAll()
+    {	
+        $boards = Boards::orderBy('_no', 'desc')->get();
+        return view('index', ['boards' => $boards]);
+    }
+}
+```
+
+
+
+`$boards = Boards::orderBy('_no', 'desc')->get();`
+
+Board 모델을 통해 _no로 내림차순으로 정렬한 뒤 데이터를 가져온다. (Eloquent ORM)
+
+이후 `return view('{호출할 view_name}', ['{넘겨줄 변수 명}' => {조회한 데이터}]);`를 통해 view를 랜더링 한다.
+
+
+
+이제 화면에 표시할 view를 만들어야 한다.
+
+
+
+### View 만들기
+
+view는 resources -> views 폴더에서 관리한다.
+
+view는 .blade.php 확장자를 사용하며, 블레이드 템플릿 이라 한다.
+
+여기서는 공통으로 사용될 layout을 만든 뒤, 각 페이지를 이 layout에 나타 낼 것이다.
+
+```php+HTML
+// layout.blade.php
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>게시판 layout</title>
+</head>
+<body>
+  @yield('content')
+</body>
+</html>
+```
+
+
+
+`@yiedl('content')`는 `@section('content')`로 지시된 데이터를 보여주겠다는 선언이다. 따라서 layout 외에 만드는 페이지에는 모두 `@section('content')`지시어를 선언해야 한다.
+
+
+
+이제 글 들을 보여줄 view페이지를 만들어보자
+
+```php+HTML
+// index.blade.php
+
+@extends('layout')
+
+@section('content')
+  @foreach($boards as $board)
+    {{$board['title']}}
+  @endforeach
+@endsection
+```
+
+`@extend('layout')`은 layout.blade.php 를 상속받아서 사용하겠다는 의미다.
+
+이후 `@section('content')` ~ `@endsection` 범위까지를 layout.blade.php에서의 `@section('content')`영역에 출력하겠다는 의미이다.
+
+또한, 블레이드 뷰로 전달된 데이터를 표시하기 위해 `{{ $value }}`를 사용한다.
+
+`@foreach`와 같은 지시어들은 대응하는 php 문장들과 동일하게 동작한다.
+
+
+
+
+
+### 라우터 설정
+
+이제 우리는 특정 경로(`ex: http://localhost:8000/{경로}`)로 접근 했을때 어떠한 view를 띄울것인가에 대한 설정(길안내)을 해야한다.
+
+이러한 설정은 프로젝트 내의 라우터에서 할 수 있다. (routes -> web.php)
+
+![image-20210406150056101](C:\Users\DESKTOP\AppData\Roaming\Typora\typora-user-images\image-20210406150056101.png)
+
+<center>web.php</center>
+
+가장 기본적인 Laravel 라우트는 URI와 클로저를 전달 받아 라우팅을 정의한다. 
+
+`Route::{HTTP Method}('{$uri}', $callback);`
+
+쉽게말해 HTTP method를 통해 특정 uri(`ex: {기본주소}/index`)로 접근하였을때 `$callback`을 실행한다고 생각하면 된다.
+
+```php
+Route::get('/', function () {
+    return view('welcome');
+});
+```
+
+ 위 코드의 경우 `GET`메소드를 통하여 `/`이라는 주소(`http:localhost:8000/`) 로 접근하였을때 `welcome`이라는 view를 리턴하는 함수를 실행한다.
+
+
+
+우리는 사이트에 처음 접근하였을때 화면에 모든 게시글들이 나타나야 한다.
+
+BoardController에서 이러한 기능을 수행하는 함수를 만들었기 때문에 여기서는 `/`uri에 접근 했을때 이를 호출해주면 된다.
+
+```php
+<?php
+// web.php
+    
+use App\Http\Controllers\BoardController;
+use Illuminate\Support\Facades\Route;
+
+Route::get('/', [BoardController::class, 'searchAll']);
+```
+
+
+
+### 테스트
+
+```
+php artisan serve
+```
+
+위 명령어를 통해 서버를 실행 할 수 있다.
+
+라우터 설정에서 초기 페이지에 게시글들의 제목들이 나타나게 하였으므로 페이지에 접속했을때 제목이 쭉 나열되면 성공이다.
+
+![image-20210406151631785](C:\Users\DESKTOP\AppData\Roaming\Typora\typora-user-images\image-20210406151631785.png)
+
+<center>초기 화면</center>

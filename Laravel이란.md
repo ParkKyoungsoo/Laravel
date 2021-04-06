@@ -1,0 +1,428 @@
+## 
+
+php를 이용하여 화면에 구구단을 출력해보자.
+
+```php+HTML
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+
+<body>
+  <?php
+    for ($i = 1; $i <= 9; $i++) {
+        for ($j = 1; $j <= 9; $j++) {
+            echo $i . ' x ' . $j . '= ' . $i * $j . '<br />';
+        }
+    }
+  ?>
+</body>
+
+</html>
+```
+
+
+
+한눈에 코드가 들어오지 않는다. 
+
+화면을 표시하는 html 코드와 로직을 담당하는 php 코드가 뒤섞여있기 때문에 더욱 어려운거 같다. 
+
+간단한 코드이기때문에 코드가 한눈에 들어 올 수도 있다.  그렇다면 다음 코드를 보자
+
+```php+HTML
+// 게시판 리스트 페이지
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" type="text/css" href="style.css">
+  <title>Document</title>
+</head>
+
+<body>
+  <div class="header">
+    자유게시판 <br />
+  </div>
+  <div class="content">
+    <div class="list_option">
+      <form method="GET" action="articleList.php">
+        <select name="search_option">
+          <option value="title" selected="selected">글 제목</option>
+          <option value="no">글 번호</option>
+          <option value="writer">작성자</option>
+        </select>
+        <input class="search_form" type="text" name="value">
+        <button>검색</button>
+      </form>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th class="table_no">No.</th>
+          <th class="table_title">제목</th>
+          <th class="table_writer">작성자</th>
+          <th class="table_write_time">작성시간</th>
+        </tr>
+      </thead>
+      <tbody class="table_content">
+        <?php
+if (isset($_GET["page"])) {
+    $page = $_GET["page"];
+} else {
+    $page = 1;
+}
+
+$str = file_get_contents('articles.json');
+$json = json_decode($str, true);
+
+if (isset($_GET['search_option']) && isset($_GET['value'])) {
+    // json에서 title로 추출 후 재가공
+    $resultArr = array();
+
+    for ($i = 0; $i < count($json); $i++) {
+        if (strpos($json[$i]['title'], $_GET['value'])) {
+            echo $json[$i]['title'];
+            array_push($resultArr, $json[$i]);
+        }
+    }
+
+    if (count($resultArr) != 0) {
+        $json = $resultArr;
+    }
+
+    var_dump($resultArr);
+
+    echo $_GET['search_option'];
+    echo var_dump($_GET['value']);
+
+} else if (isset($_GET['writer'])) {
+    // json에서 writer로 추출 후 재가공
+} else {
+
+}
+
+$totalCnt = count($json);
+
+$list = 5;
+$block_cnt = 5;
+// $block_num = ceil($page / $block_cnt);
+$block_num = $page;
+$block_start = $totalCnt - (($block_num - 1) * $block_cnt);
+$block_end = $block_start - $block_cnt;
+
+$total_page = ceil($totalCnt / $list);
+
+if ($block_end < 1) {
+    $block_end = 1;
+}
+
+$total_block = ceil($total_page / $block_cnt);
+$page_start = ($page - 1) * $list;
+
+if ($block_start - $block_cnt < 1) {
+    $arrStart = 0;
+    $arrCnt = $totalCnt % $block_cnt;
+} else {
+    $arrStart = $block_end;
+    $arrCnt = 5;
+}
+
+$sliceArray = array_slice($json, $arrStart, $arrCnt);
+
+for ($i = count($sliceArray) - 1; $i >= 0; $i--) {
+    ?>
+        <tr>
+          <td class="table_no"><?php echo $sliceArray[$i]['no'] ?></td>
+          <td class="table_title"
+            onClick='location.href="article.php?no=<?php echo $sliceArray[$i]['no'] ?>&pageNum=<?php echo $page ?>"'>
+            <?php echo $sliceArray[$i]['title'] ?>
+          </td>
+          <td class="table_writer"><?php echo $sliceArray[$i]['writer'] . "<br />" ?></td>
+          <td class="table_write_time"><?php echo $sliceArray[$i]['regTime'] ?></td>
+        </tr>
+        <?php
+}
+?>
+      </tbody>
+    </table>
+    <div class="pageNum" style="text-align: center;">
+      <?php
+
+echo "<a href='articleList.php?page=1'>처음 </a>";
+
+if ($page <= 1) {
+
+} else {
+    $pre = $page - 1;
+    echo "<a href='articleList.php?page=$pre'>◀ 이전</a>";
+}
+
+for ($i = 1; $i <= $total_page; $i++) {
+    if ($page == $i) {
+        echo "<div> $i </div>";
+    } else {
+        echo "<a href='articleList.php?page=$i'> $i </a>";
+    }
+}
+
+if ($page >= $total_page) {
+
+} else {
+    $next = $page + 1;
+    echo "<a href='articleList.php?page=$next'>다음 ▶</a>";
+}
+
+echo "<a href='articleList.php?page=$total_page'> 마지막</a>";
+
+?>
+    </div>
+  </div>
+</body>
+
+</html>
+```
+
+위처럼 코드가 길어질수록 읽기 어려워지고 복잡해진다.
+
+또한 혼자 개발하는게 아닌, 다른사람과 같이 개발을 해야될 경우 서로의 코드를 읽을 수 없는 경우가 생길 수 도 있다.
+
+
+
+이러한 문제들을 피하기 위해 우리는 디자인 패턴중 하나인 **MVC(Model-View-Controller)** 패턴을 사용하여 개발을 한다.
+
+
+
+### MVC(Model - View - Controller) 패턴
+
+Model - View - Controller 는 소프트웨어 공학에서 사용되는 소프트웨어 디자인 패턴이다. 아래는 MVC의 위키백과 검색결과이다.
+
+```
+모델-뷰-컨트롤러(model–view–controller, MVC)는 소프트웨어 공학에서 사용되는 소프트웨어 디자인 패턴이다. 이 패턴을 성공적으로 사용하면, 사용자 인터페이스로부터 비즈니스 로직을 분리하여 애플리케이션의 시각적 요소나 그 이면에서 실행되는 비즈니스 로직을 서로 영향 없이 쉽게 고칠 수 있는 애플리케이션을 만들 수 있다. MVC에서 모델은 애플리케이션의 정보(데이터)를 나타내며, 뷰는 텍스트, 체크박스 항목 등과 같은 사용자 인터페이스 요소를 나타내고, 컨트롤러는 데이터와 비즈니스 로직 사이의 상호동작을 관리한다.
+- 위키백과 mvc -  
+```
+
+**Model** : 어플리케이션의 데이터, 자료를 의미한다.
+
+**View** : 사용자에게 보여지는 부분, 즉 유저 인터페이스(User Interface)를 의미한다.
+
+**Controller** : Model과 View를 이어주는 다리(Bridge) 같은 역할을 한다.
+
+즉, 역할에 따라 분리하여 유지보수를 용이하게 하고 프로그램의 확장성과 유연성을 높히기 위한 기법이다. 
+
+
+
+네이버 페이지를 예시로 들어보면 
+
+**View** : https://www.naver.com 으로 들어갔을때 보이는 화면
+
+**Model** : 네이버 회원들의 정보(ID: ghdrlfehd123 , 이름 : 홍길동,....)
+
+**Controller** : 버튼을 클릭하였을때 로그인이 된다, 전송을 누르면 메일이 간다.(로직)
+
+이라고 생각하면 된다.
+
+![](https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdn%2FdgVdfj%2Fbtqyt5V1AGY%2FyfKK8EAnKRMBoHT3hQCGJ0%2Fimg.png)
+
+<center><출처 : <a href='https://luckygg.tistory.com/182' /> https://luckygg.tistory.com/182 ></center>
+
+
+
+
+
+#### MVC패턴의 장점
+
+1. 디자이너와 개발자의 협업이 용이하다.
+2. 유지보수 비용을 절감할 수 있다.
+
+
+
+#### 단점
+
+1. 복잡하다
+2. 설계시간이 오래걸리고 배우기 어렵다.
+
+
+
+
+
+## 프레임워크(Framework)
+
+그렇다면 개발을 시작할때마다 모든 개발자들이 모여 View, Model, Controller을 설계하고 규칙을 정해야 할까?
+
+이렇게 개발을 한다면 많은 시간과 인력이 투입되어야 할 것이다. 이러한 문제점을 해결할 수 있는것이 **프레임워크(Framework)** 이다.
+
+```
+컴퓨터 프로그래밍에서, 소프트웨어 프레임워크(software framework)는 복잡한 문제를 해결하거나 서술하는 데 사용되는 기본 개념 구조이다. 간단히 뼈대, 골조(骨組), 프레임워크(framework)라고도 한다. 이렇게 매우 폭넓은 정의는 이 용어를 버즈워드(buzzword)로서, 특히 소프트웨어 환경에서 사용할 수 있게 만들어 준다.
+
+- 위키백과 framework - 
+```
+
+
+
+프레임워크는 개발환경을 표준화 하고 효율화 하기 위한 도구이다. 틀이라고 생각하면 쉽다. 
+
+미리 짜여진 틀 안에서 개발을 하기 때문에 서로 협업이 가능하고, 일련화된 코드들이 만들어 진다.
+
+
+
+
+
+# Laravel
+
+Laravel(라라벨)이란?
+
+```
+라라벨(Laravel)은 자유, 오픈 소스 PHP 웹 프레임워크의 하나로, 테일러 오트웰이 개발하였으며 모델-뷰-컨트롤러(MVC) 아키텍처 패턴을 따라 웹 애플리케이션을 개발하기 위해 고안되었다. 
+
+- 위키 백과 Laravel -
+```
+
+
+
+```
+라라벨은 PHP 에서 사용할 수 있는 가장 모던하고 세련된 프레임워크이며, 유연하고 세련된 기능을 제공합니다. 라라벨은 PHP개발이 즐겁고 좀더 창의적일 수 있도록 하기 위해서 만들어졌습니다. 라라벨을 사용하면 PHP를 사용한 웹 개발에 있어서, 보다 중요한 비지니스 로직을 구현하는데 집중할 수 있습니다.
+
+- 라라벨 한국어 메뉴얼 -
+```
+
+
+
+#### 특징
+
+1. ###### MVC 패턴 지원
+
+2. ###### Command-Line Interface : Artisan(아티즌)
+
+   Laravel에 포함된 커맨드라인 인터페이스의 이름이다. 어플리케이션 개발에 도움을 주는 많은 명령어들을 제공한다. 
+
+   이러한 명령어들을 이용해서 간단하게 Controller, Model의 틀을 생성 할 수 있다.
+
+   `php artisan make:controller {이름}` : 컨트롤러 생성
+
+   `php artisan make:model {이름}` : 모델 생성
+
+   [아티즌 콘솔 한국어 메뉴얼 - Laravel Korea](https://laravel.kr/docs/8.x/artisan)
+
+   
+
+   
+
+3. ###### Package Manager : Composer(컴포저)
+
+   Node.js 의 npm(Node Package Module) 처럼 다른사람이 만들어 놓은 패키지를 불러오는 것이 가능하다. 예를 들어
+
+   `composer require "laracademy/generators" --dev` 를 통해 table에서 모델을 생성하는 패키지를 설치 후 
+
+   `php artisan generate: modelfromtable` 명령어를 통해 table에서 바로 Model 을 생성 할 수 있다.
+
+   [참고 - https://github.com/laracademy/generators](https://github.com/laracademy/generators)
+
+   
+
+   
+
+4. ###### Object Relational Mapping : Eloquent(엘로퀀트)
+
+   
+
+   
+
+   
+
+5. ###### Template Engine : Blade(블레이드)
+
+   Laravel에서 제공하는 템플릿 엔진<sup>*****</sup>이다. 다른 PHP 템플릿 엔진과 달리 순수 PHP 코드를 작성하는 것을 허용한다. 또한 조건문(if), 루프(loop) 와 같은 지시문을 사용 할 수 있다. 블레이드의 가장 주요한 두가지 장점은 템플릿 상속과 섹션이다. 이를 통해 다양한 페이지에서 동일한 레이아웃을 유지 할 수 있다.
+
+   <div style="font-size: 10px">템플릿 엔진 : 템플릿 양식과 특정 데이터 모델에 따른 입력 자료를 결합하여 원하는 결과 문서를 출력하는 소프트웨어(또는 컴포넌트)를 말한다. 그중 웹 템플릿엔진(Web Template Engine)이란 웹문서가 출력되는 엔진을 말한다. </div>
+
+   **블레이드 템플릿 예시**
+
+   ```php+HTML
+   <!-- Stored in resources/views/layouts/app.blade.php -->
+   
+   <html>
+       <head>
+           <title>App Name - @yield('title')</title>
+       </head>
+       <body>
+           @section('sidebar')
+               This is the master sidebar.
+           @show
+   
+           <div class="container">
+               @yield('content')
+           </div>
+       </body>
+   </html>
+   ```
+
+   ```php+HTML
+   <!-- Stored in resources/views/child.blade.php -->
+   
+   @extends('layouts.app')
+   
+   @section('title', 'Page Title')
+   
+   @section('sidebar')
+       @parent
+   
+       <p>This is appended to the master sidebar.</p>
+   @endsection
+   
+   @section('content')
+       <p>This is my body content.</p>
+   @endsection
+   ```
+
+   [블레이드 템플릿 - Laravel Korea](https://laravel.kr/docs/8.x/blade)
+
+   
+
+   
+
+   
+
+6. ###### 거대한 커뮤니티
+
+   사용자 층이 두껍기 때문에 거대한 커뮤니티가 생성되어 있다. 즉, 오류의 수정은 물론 다양한 지원을 받을 수 있다는 것이다.
+
+   - [LARACASTS](https://laracasts.com/)
+   - [LARAVAL.io](https://laravel.io/)
+   - [Laravel Korea](https://laravel.kr/)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+참고
+
+- [위키백과 - MVC](https://ko.wikipedia.org/wiki/%EB%AA%A8%EB%8D%B8-%EB%B7%B0-%EC%BB%A8%ED%8A%B8%EB%A1%A4%EB%9F%AC)
+
+- [MVC(Model-View-Controller) 패턴 이야기 #1](https://luckygg.tistory.com/182)
+
+  
+
+
+
+
+
