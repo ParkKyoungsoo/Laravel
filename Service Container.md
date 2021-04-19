@@ -348,6 +348,57 @@ php artisan make:provider MyServiceProvider
 
 
 
+이렇게 생성된 Provider는 `App -> Providers`에서 확인이 가능 하다. 그리고 `config -> app.php`에서 providers 배열에 등록하여 사용할 수 있다.
+
+```php
+// app.php
+<?php
+
+return [
+	// 생략
+
+    'providers' => [
+
+        /*
+         * Laravel Framework Service Providers...
+         */
+		// 생략
+        /*
+         * Package Service Providers...
+         */
+
+        /*
+         * Application Service Providers...
+         */
+        App\Providers\AppServiceProvider::class,
+        App\Providers\AuthServiceProvider::class,
+        // App\Providers\BroadcastServiceProvider::class,
+        App\Providers\EventServiceProvider::class,
+        App\Providers\RouteServiceProvider::class,
+        
+        // 여기에 Proivder를 등록 할 수 있다. 
+
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Class Aliases
+    |--------------------------------------------------------------------------
+    |
+    | This array of class aliases will be registered when this application
+    | is started. However, feel free to register as many as you wish as
+    | the aliases are "lazy" loaded so they don't hinder performance.
+    |
+    */
+
+    'aliases' => [
+		//...
+    ],
+
+];
+
+```
+
 
 
 
